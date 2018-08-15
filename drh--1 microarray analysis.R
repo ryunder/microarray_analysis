@@ -28,11 +28,10 @@ cels <- list.files("data/", pattern = "CEL")
 sapply(paste("data", cels, sep="/"), gunzip)
 cels <- list.files("data/",pattern = "CEL")
 
-#change wd to match 
-setwd("data")
+#data
 
 #Load and organize data
-ab <- ReadAffy(filenames = cels)
+ab <- ReadAffy(filenames = cels, celfile.path = "data/")
 eset <- rma(ab)
 head(exprs(eset))
 samplenames <- substring(colnames(eset), 12, nchar(colnames(eset))-14)
@@ -110,3 +109,4 @@ head(un.JU1580.vs.inf.JU1580.treat)
 head(diff.JU1580.vs.N2.treat)
 
 sessionInfo()
+
