@@ -18,6 +18,7 @@ library(GEOquery)
 library(gcrma)
 library(org.Ce.eg.db)
 library(annotate)
+library(openxlsx)
 
 #Import data from GEO
 gset <- getGEOSuppFiles("GSE41056")
@@ -108,5 +109,21 @@ head(un.N2.vs.inf.N2.treat)
 head(un.JU1580.vs.inf.JU1580.treat)
 head(diff.JU1580.vs.N2.treat)
 
+#Write to xlsx
+wb <- createWorkbook()
+addWorksheet(wb, sheetName = "N2 un vs N2 inf")
+addWorksheet(wb, sheetName = "JU1580 un vs JU1580 inf")
+writeData(wb, "N2 un vs N2 inf", un.N2.vs.inf.N2, rowNames = T)
+setColWidths(wb, sheet = 1, cols = 1:3, widths = "auto")
+writeData(wb, "JU1580 un vs JU1580 inf", un.JU1580.vs.inf.JU1580, rowNames = T, keepNA = T)
+setColWidths(wb, sheet = 2, cols = 1:3, widths = "auto")
+
+saveWorkbook(wb, "2018_08_14_JU1580_DEGenes.xlsx", overwrite=T)
+
+#common genes
+degenes.common <- which(results[,1]!=0 & results[,2]!=0)
+length(degenes.common)
+
+#session info
 sessionInfo()
 
