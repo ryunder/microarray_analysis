@@ -1,0 +1,60 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#Introduction
+I will perform DEG analysis on microarray data from NCBI GEO series GSE99586 submitted by Miska and Sarkies. The NCBI site does not include a citation for any publication using this data, and I have not investigated that any further.
+
+*I will be following the same workflow I used to investigate JU1580.*
+
+I wanted to follow the same workflow I used to investigate JU1580, however, this data set was generated using a different type of microarray. Therefore I needed to download an install additional packages
+
+#Setup  
+##Load Libraries
+```{r}
+source("https://bioconductor.org/biocLite.R")
+#biocLite("pd.elegene.1.0.st")
+biocLite("oligo")
+library(gcrma)
+library(limma)
+library(affy)
+library(annotate)
+library(celegans.db)
+library(GEOquery)
+library(org.Ce.eg.db)
+library(oligo)
+library(oligoClasses)
+library("pd.elegene.1.0.st", lib.loc="~/R/x86_64-pc-linux-gnu-library/3.5") #Specific for Ryan's laptop
+```
+
+##Unpack Data
+I've download the data in an archival format, .tar, the first step is to unpack the data. It should contain a single cel file for each sample run.
+
+```{r}
+untar("GSE99586_RAW.tar", exdir = "GSE99586_data")
+```
+
+##Load cel files
+Now that we have unpacked the files, we will import them to R and continue our analysis. Note all the cel files are compressed and we must uncompress them.
+```{r}
+cels <- list.files("GSE99586_data/", pattern = "CEL")
+sapply(paste("GSE99586_data", cels, sep="/"), gunzip)
+cels <- list.celfiles("GSE99586_data/", full.names = T)
+cels
+```
+
+```{r}
+rawData <- read.celfiles(cels)
+rawData
+```
+
+
+##Organize data
+Success, we have unpacked all the compressed cel files and now we will continue our analysis. The first function `ReadAffy()` is in the `affy` library we loaded earlier. It will read cel files and concatenate them into an affybatch object. The following function `rma()` will convert the affybatch object into an ExpressionSet object. These ExpressionSet objects can be manipulated by many existing R packages.
+```{r}
+eset <- backgroundCorrect(rawData)
+head(exprs(eset))
+boxplot(eset)
+```
+
