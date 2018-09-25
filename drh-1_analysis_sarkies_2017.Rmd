@@ -8,14 +8,14 @@ I will perform DEG analysis on microarray data from NCBI GEO series GSE99586 sub
 
 *I will be following the same workflow I used to investigate JU1580.*
 
-I wanted to follow the same workflow I used to investigate JU1580, however, this data set was generated using a different type of microarray. Therefore I needed to download an install additional packages
+I wanted to follow the same workflow I used to investigate JU1580, however, this data set was generated using a different type of microarray platform. Therefore I needed to download an install additional packages and alter certain parts of the analysis.
 
 #Setup  
 ##Load Libraries
 ```{r}
 source("https://bioconductor.org/biocLite.R")
 #biocLite("pd.elegene.1.0.st")
-biocLite("oligo")
+#biocLite("oligo")
 library(gcrma)
 library(limma)
 library(affy)
@@ -53,8 +53,66 @@ rawData
 ##Organize data
 Success, we have unpacked all the compressed cel files and now we will continue our analysis. The first function `ReadAffy()` is in the `affy` library we loaded earlier. It will read cel files and concatenate them into an affybatch object. The following function `rma()` will convert the affybatch object into an ExpressionSet object. These ExpressionSet objects can be manipulated by many existing R packages.
 ```{r}
-eset <- backgroundCorrect(rawData)
+eset <- oligo::rma(rawData)
 head(exprs(eset))
 boxplot(eset)
+```
+
+##Rename columns
+Remove the long and cumbersome GSE names and .cel extensions. Additionally, R does not like to have numbers as the first character of a column. (I think you can if you specify that the number is a character string, but I haven't tested this.) In this case I make a simple substitution and swap the `6` for `"R"`. It won't matter though since we are not concerned with those samples.
+```{r}
+samplenames <- substring(colnames(eset),24, nchar(colnames(eset))-4)
+samplenames <- gsub(6,"R",samplenames)
+colnames(eset) <- samplenames
+head(exprs(eset))
+```
+
+```{r}
+par(mfrow=c(1,2))
+plotMDS(eset)
+plotMDS(eset, dim.plot = c(3,4))
+```
+
+#Data organization
+##Match chip cells with c elegans genes
+Turns out, after many hours of tinkering and googling, that the probe set IDs of this particular array are not included in the annotation dbs (like `celegans.db`). This `getNetAffx()` function is the best thing that I could find. In this case, it matches the probeID with the gene and protein information. I think this data is contained in the `eset` object, but I am not positive. I am also not positive on how to access the annotation information until later, when I call `topTable()`.
+```{r}
+annot <- getNetAffx(eset, type = "transcript")
+featureData(eset) <- annot
+```
+
+Extract the first two characters for the groups. be sure to use `as.factor()` as the next step, design matrix, will require factors.
+```{r}
+group <- as.factor(substring(samplenames,1,2))
+group
+```
+
+##Make Design matrix
+```{r}
+design <- model.matrix(~0+group)
+colnames(design) <- levels(group)
+design   
+```
+
+##Generate contrast matrix
+There is only one comparisons I am interested in for this analysis. drh-1(-) vs N2 uninfected. 
+```{r}
+contrast_matrix <- makeContrasts(
+  drh1.vs.n2 = DU - NU,
+  levels = design
+)
+contrast_matrix
+```
+
+```{r}
+fit <- lmFit(eset, design)
+fit2 <- contrasts.fit(fit, contrast_matrix)
+efit <- eBayes(fit2, trend = T)
+results <- decideTests(efit)
+summary(results)
+```
+
+```{r}
+topTable(efit, p.value = 0.05, sort.by = "p")
 ```
 
