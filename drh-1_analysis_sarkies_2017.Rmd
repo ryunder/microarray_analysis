@@ -12,8 +12,8 @@ I wanted to follow the same workflow I used to investigate JU1580, however, this
 
 #Setup  
 ##Load Libraries
-```{r}
-source("https://bioconductor.org/biocLite.R")
+```{r eval=F}
+#source("https://bioconductor.org/biocLite.R")
 #biocLite("pd.elegene.1.0.st")
 #biocLite("oligo")
 library(gcrma)
@@ -31,13 +31,13 @@ library("pd.elegene.1.0.st", lib.loc="~/R/x86_64-pc-linux-gnu-library/3.5") #Spe
 ##Unpack Data
 I've download the data in an archival format, .tar, the first step is to unpack the data. It should contain a single cel file for each sample run.
 
-```{r}
+```{r eval=F}
 untar("GSE99586_RAW.tar", exdir = "GSE99586_data")
 ```
 
 ##Load cel files
 Now that we have unpacked the files, we will import them to R and continue our analysis. Note all the cel files are compressed and we must uncompress them.
-```{r}
+```{r eval=F}
 cels <- list.files("GSE99586_data/", pattern = "CEL")
 sapply(paste("GSE99586_data", cels, sep="/"), gunzip)
 cels <- list.celfiles("GSE99586_data/", full.names = T)
@@ -99,6 +99,8 @@ There is only one comparisons I am interested in for this analysis. drh-1(-) vs 
 ```{r}
 contrast_matrix <- makeContrasts(
   drh1.vs.n2 = DU - NU,
+  drh1inf.vs.drh1.un = DI - DU,
+  N2inf.vs.N2.un = NI - NU,
   levels = design
 )
 contrast_matrix
@@ -113,6 +115,8 @@ summary(results)
 ```
 
 ```{r}
-topTable(efit, p.value = 0.05, sort.by = "p")
+topTable(efit, coef=1, p.value = 0.05, n=Inf, sort.by = "M")
+topTable(efit, coef=2, p.value = 0.05, n=Inf, sort.by = "M")
+topTable(efit, coef=3, p.value = 0.05, n=Inf, sort.by = "M")
 ```
 
